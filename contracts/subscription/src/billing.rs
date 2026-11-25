@@ -83,7 +83,7 @@ pub(crate) fn charge(env: &Env, keeper: &Address, sub_id: u64) -> Result<i128, E
 pub(crate) fn is_due(env: &Env, sub_id: u64) -> bool {
     let now = env.ledger().timestamp();
     storage::read_subscription(env, sub_id)
-        .is_ok_and(|sub| sub.status.is_chargeable() && now >= sub.next_charge_at)
+        .is_ok_and(|s| s.status.is_chargeable() && now >= s.next_charge_at)
 }
 
 /// Records a failed charge. The first failure moves the subscription to past due and
