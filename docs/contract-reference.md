@@ -95,3 +95,53 @@ Fees round down, so rounding dust goes to the merchant.
 `paused_at`, `credit`, `total_paid`, `total_refunded`.
 
 `status` is a `u32`; the values are listed in [lifecycle.md](lifecycle.md).
+
+### Events
+
+The first topic is a short symbol, the second is the id it concerns. Data structs are
+defined in `contracts/lumensub-types/src/events.rs`.
+
+| Topics | Data | When |
+|---|---|---|
+| `("config")` | `Config` | Any change to the config, including initialization. |
+| `("merchant", merchant)` | payout `Address` | A merchant registers or changes payout. |
+| `("plan_new", plan_id)` | `{ merchant, token, amount, period_secs }` | A plan is created. |
+| `("plan_act", plan_id)` | `bool` | A plan is opened or closed. |
+| `("sub_new", sub_id)` | `{ plan_id, subscriber }` | Someone subscribes. |
+| `("charged", sub_id)` | `{ amount, fee, keeper_reward, cycle, next_charge_at }` | A charge succeeds, including the first one on sign-up. |
+| `("chg_fail", sub_id)` | `{ reason, status }` | A charge fails. `reason` is `allowance` or `balance`; `status` is `PastDue` or `Lapsed`. |
+| `("paused", sub_id)` | none | A subscription is paused. |
+| `("resumed", sub_id)` | none | A subscription is resumed. |
+| `("cancelled", sub_id)` | `{ by }` | A subscription is cancelled. `by` is the subscriber or the merchant. |
+| `("plan_chg", sub_id)` | `{ from_plan, to_plan }` | A subscriber changes plan. |
+| `("refunded", sub_id)` | `{ amount }` | A merchant refunds. |
+
+On sign-up without a trial, `sub_new` is published first and `charged` (with
+`cycle: 1` and `keeper_reward: 0`) right after it.
+
+### Errors
+
+| Code | Name | Meaning |
+|---|---|---|
+| 1 | `NotInitialized` | `initialize` has not been called. |
+| 2 | `AlreadyInitialized` | `initialize` was called twice. |
+| 3 | `Unauthorized` | The caller is not allowed to do this. |
+| 4 | `MerchantNotFound` | No merchant at this address. |
+| 5 | `PlanNotFound` | No plan with this id. |
+| 6 | `PlanInactive` | The plan is closed to new subscribers. |
+| 7 | `SubscriptionNotFound` | No subscription with this id. |
+| 8 | `NotDue` | The subscription is not due yet. |
+| 9 | `InvalidStatus` | The subscription's status does not allow this. |
+| 10 | `InvalidAmount` | Zero, negative or out-of-range amount. |
+| 11 | `InvalidPeriod` | Period, trial or grace out of range. |
+| 12 | `FeeTooHigh` | Fee or keeper reward above the cap. |
+| 13 | `ProtocolPaused` | The admin has paused the protocol. |
+| 14 | `TokenMismatch` | The plans use different tokens. |
+| 15 | `MerchantMismatch` | The plan or subscription belongs to another merchant. |
+| 16 | `RefundTooLarge` | The refund exceeds what is refundable. |
+| 17 | `InsufficientAllowance` | The subscriber has not approved enough for this contract. |
+| 18 | `InsufficientBalance` | The subscriber's balance is too low. |
+| 19 | `NoPendingAdmin` | `accept_admin` with no handover in progress. |
+| 20 | `SamePlan` | `change_plan` to the plan already in use. |
+
+Codes never change and new ones are only appended.
