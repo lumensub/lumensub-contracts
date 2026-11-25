@@ -24,6 +24,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Resolve dependencies
+        # soroban-env-host 22 accepts any ed25519-dalek >= 2, but its test utilities do not
+        # build against 3.x. Hold it at 2.x until upstream narrows the bound.
+        run: |
+          cargo generate-lockfile
+          cargo update -p ed25519-dalek@3.0.0 --precise 2.2.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cargo-lock
+          path: Cargo.lock
       - uses: Swatinem/rust-cache@v2
       - name: Format
         run: cargo fmt --all -- --check
