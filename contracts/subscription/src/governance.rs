@@ -92,3 +92,26 @@ pub(crate) fn set_paused(env: &Env, admin: &Address, paused: bool) -> Result<(),
     events::config_updated(env, &config);
     Ok(())
 }
+
+/// First step of an admin handover. The new admin has to accept before anything changes,
+/// which protects against handing the contract to a mistyped address.
+pub(crate) fn propose_admin(env: &Env, admin: &Address, new_admin: &Address) -> Result<(), Error> {
+    require_admin(env, admin)?;
+    storage::write_pending_admin(env, new_admin);
+    Ok(())
+}
+
+pub(crate) fn accept_admin(env: &Env, new_admin: &Address) -> Result<(), Error> {
+    let pending = storage::read_pending_admin(env)
+        .ok_or(Error::NoPendingAdmin)?;
+    if pending != *new_admin {
+        return Err(Error::Unauthorized);
+    }
+    new_admin.require_auth();
+    let mut config = storage::read_config(env)?;
+    config.admin = new_admin.clone();
+    storage::write_config(env, &config);
+    storage::remove_pending_admin(env);
+    events::config_updated(env, &config);
+    Ok(())
+}

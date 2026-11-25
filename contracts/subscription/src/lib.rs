@@ -67,4 +67,14 @@ impl SubscriptionContract {
     pub fn unpause_protocol(env: Env, admin: Address) -> Result<(), Error> {
         governance::set_paused(&env, &admin, false)
     }
+
+    /// Starts handing the admin role to `new_admin`, who must then call `accept_admin`.
+    pub fn propose_admin(env: Env, admin: Address, new_admin: Address) -> Result<(), Error> {
+        governance::propose_admin(&env, &admin, &new_admin)
+    }
+
+    /// Completes an admin handover started with `propose_admin`.
+    pub fn accept_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        governance::accept_admin(&env, &new_admin)
+    }
 }

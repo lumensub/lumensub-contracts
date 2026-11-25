@@ -114,3 +114,34 @@ fn only_the_admin_can_pause() {
         Err(Ok(Error::Unauthorized))
     );
 }
+
+#[test]
+fn admin_handover_takes_two_steps() {
+    let s = Setup::bare();
+    let next = Address::generate(&s.env);
+    s.client.propose_admin(&s.admin, &next);
+    assert_eq!(s.client.get_config().admin, s.admin);
+    s.client.accept_admin(&next);
+    assert_eq!(s.client.get_config().admin, next);
+}
+
+#[test]
+fn only_the_proposed_admin_can_accept() {
+    let s = Setup::bare();
+    let next = Address::generate(&s.env);
+    let stranger = Address::generate(&s.env);
+    s.client.propose_admin(&s.admin, &next);
+    assert_eq!(
+        s.client.try_accept_admin(&stranger),
+        Err(Ok(Error::Unauthorized))
+    );
+}
+
+#[test]
+fn accepting_with_no_handover_in_progress_fails() {
+    let s = Setup::bare();
+    assert_eq!(
+        s.client.try_accept_admin(&s.admin),
+        Err(Ok(Error::NoPendingAdmin))
+    );
+}
