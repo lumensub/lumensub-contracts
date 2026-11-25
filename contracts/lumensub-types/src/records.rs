@@ -27,3 +27,28 @@ pub struct Merchant {
     /// Ledger timestamp of the first registration.
     pub registered_at: u64,
 }
+
+/// Something a merchant sells on a schedule.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Plan {
+    pub id: u64,
+    pub merchant: Address,
+    /// Stellar asset contract the plan is priced in.
+    pub token: Address,
+    /// Price per period, in the token's smallest unit.
+    pub amount: i128,
+    /// Length of one billing period in seconds.
+    pub period_secs: u64,
+    /// Free trial before the first charge, in seconds. Zero means no trial.
+    pub trial_secs: u64,
+    /// Number of periods to charge before the subscription completes. Zero means no limit.
+    pub max_cycles: u32,
+    /// How long a failed charge can be retried before the subscription lapses, in seconds.
+    pub grace_secs: u64,
+    /// Inactive plans keep billing existing subscribers but accept no new ones.
+    pub active: bool,
+    pub created_at: u64,
+    /// Subscriptions currently attached to this plan, including paused and past-due ones.
+    pub subscriber_count: u32,
+}
