@@ -105,9 +105,9 @@ fn switching_to_a_plan_in_another_token_fails() {
     let s = Setup::with_merchant();
     let id = s.subscribe(s.create_plan(0, 0, DAY));
     let euro = s.env.register_stellar_asset_contract_v2(s.admin.clone());
-    let euro_plan = s
-        .client
-        .create_plan(&s.merchant, &euro.address(), &PRICE, &MONTH, &0, &0, &DAY);
+    let euro_plan =
+        s.client
+            .create_plan(&s.merchant, &euro.address(), &PRICE, &MONTH, &0, &0, &DAY);
     assert_eq!(
         s.client.try_change_plan(&s.subscriber, &id, &euro_plan),
         Err(Ok(Error::TokenMismatch))

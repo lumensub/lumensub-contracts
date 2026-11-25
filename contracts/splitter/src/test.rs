@@ -48,7 +48,8 @@ fn creating_a_split_stores_it() {
 fn shares_must_add_up_to_ten_thousand() {
     let s = setup();
     assert_eq!(
-        s.client.try_create_split(&s.owner, &shares(&s, 5_000, 4_999)),
+        s.client
+            .try_create_split(&s.owner, &shares(&s, 5_000, 4_999)),
         Err(Ok(SplitError::InvalidShares))
     );
 }
@@ -161,10 +162,7 @@ fn the_owner_can_change_the_shares() {
     let id = s.client.create_split(&s.owner, &shares(&s, 5_000, 5_000));
     s.client
         .update_split(&s.owner, &id, &shares(&s, 2_500, 7_500));
-    assert_eq!(
-        s.client.get_split(&id).recipients,
-        shares(&s, 2_500, 7_500)
-    );
+    assert_eq!(s.client.get_split(&id).recipients, shares(&s, 2_500, 7_500));
 }
 
 #[test]
@@ -172,7 +170,8 @@ fn only_the_owner_can_change_the_shares() {
     let s = setup();
     let id = s.client.create_split(&s.owner, &shares(&s, 5_000, 5_000));
     assert_eq!(
-        s.client.try_update_split(&s.alice, &id, &shares(&s, 9_000, 1_000)),
+        s.client
+            .try_update_split(&s.alice, &id, &shares(&s, 9_000, 1_000)),
         Err(Ok(SplitError::Unauthorized))
     );
 }
@@ -182,7 +181,8 @@ fn updates_are_validated_like_new_splits() {
     let s = setup();
     let id = s.client.create_split(&s.owner, &shares(&s, 5_000, 5_000));
     assert_eq!(
-        s.client.try_update_split(&s.owner, &id, &shares(&s, 5_000, 6_000)),
+        s.client
+            .try_update_split(&s.owner, &id, &shares(&s, 5_000, 6_000)),
         Err(Ok(SplitError::InvalidShares))
     );
 }

@@ -33,9 +33,9 @@ fn a_new_plan_stores_its_terms() {
 #[test]
 fn unregistered_merchants_cannot_create_plans() {
     let s = Setup::bare();
-    let result = s
-        .client
-        .try_create_plan(&s.merchant, &s.token.address, &PRICE, &MONTH, &0, &0, &0);
+    let result =
+        s.client
+            .try_create_plan(&s.merchant, &s.token.address, &PRICE, &MONTH, &0, &0, &0);
     assert_eq!(result, Err(Ok(Error::MerchantNotFound)));
 }
 

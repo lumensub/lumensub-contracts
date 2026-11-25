@@ -102,8 +102,7 @@ pub(crate) fn propose_admin(env: &Env, admin: &Address, new_admin: &Address) -> 
 }
 
 pub(crate) fn accept_admin(env: &Env, new_admin: &Address) -> Result<(), Error> {
-    let pending = storage::read_pending_admin(env)
-        .ok_or(Error::NoPendingAdmin)?;
+    let pending = storage::read_pending_admin(env).ok_or(Error::NoPendingAdmin)?;
     if pending != *new_admin {
         return Err(Error::Unauthorized);
     }

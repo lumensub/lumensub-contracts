@@ -14,8 +14,8 @@ mod governance;
 mod merchants;
 mod payments;
 mod plans;
-mod refunds;
 mod pricing;
+mod refunds;
 mod storage;
 mod subscriptions;
 
