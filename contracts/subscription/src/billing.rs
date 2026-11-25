@@ -2,12 +2,12 @@
 //! caller receives the keeper reward. This is what keeps billing running without the
 //! merchant or LumenSub having to sign every payment.
 
-use lumensub_types::{ChargedEvent, Error, SubscriptionStatus};
+use lumensub_types::{ChargedEvent, Error, Subscription, SubscriptionStatus};
 use soroban_sdk::{Address, Env};
 
-use crate::payments::{self, Shortfall};
+use crate::payments;
 use crate::pricing::{next_charge_time, split_payment};
-use crate::{events, governance, storage};
+use crate::{events, governance, plans, storage};
 
 pub(crate) fn charge(env: &Env, keeper: &Address, sub_id: u64) -> Result<i128, Error> {
     keeper.require_auth();
@@ -26,8 +26,15 @@ pub(crate) fn charge(env: &Env, keeper: &Address, sub_id: u64) -> Result<i128, E
     let credit_used = sub.credit.min(plan.amount);
     let due = plan.amount - credit_used;
     if due > 0 {
-        payments::check_can_pay(env, &sub.token, &sub.subscriber, due)
-            .map_err(Shortfall::error)?;
+        if let Err(shortfall) = payments::check_can_pay(env, &sub.token, &sub.subscriber, due) {
+            record_failure(&mut sub, plan.grace_secs, now);
+            if sub.status == SubscriptionStatus::Lapsed {
+                plans::release_seat(env, sub.plan_id)?;
+            }
+            storage::write_subscription(env, &sub);
+            events::charge_failed(env, sub_id, shortfall.reason(), sub.status);
+            return Ok(0);
+        }
     }
 
     let split = split_payment(due, config.fee_bps, config.keeper_reward_bps);
@@ -70,4 +77,16 @@ pub(crate) fn is_due(env: &Env, sub_id: u64) -> bool {
     let now = env.ledger().timestamp();
     storage::read_subscription(env, sub_id)
         .is_ok_and(|sub| sub.status.is_chargeable() && now >= sub.next_charge_at)
+}
+
+/// Records a failed charge. The first failure moves the subscription to past due and
+/// starts the grace period; once the grace period has run out it lapses for good.
+fn record_failure(sub: &mut Subscription, grace_secs: u64, now: u64) {
+    if sub.status != SubscriptionStatus::PastDue {
+        sub.status = SubscriptionStatus::PastDue;
+        sub.past_due_since = now;
+    }
+    if now >= sub.past_due_since.saturating_add(grace_secs) {
+        sub.status = SubscriptionStatus::Lapsed;
+    }
 }

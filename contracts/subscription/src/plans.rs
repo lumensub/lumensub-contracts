@@ -82,3 +82,11 @@ pub(crate) fn set_active(
     events::plan_status(env, plan_id, active);
     Ok(())
 }
+
+/// Frees a plan's seat when one of its subscriptions ends for good.
+pub(crate) fn release_seat(env: &Env, plan_id: u64) -> Result<(), Error> {
+    let mut plan = storage::read_plan(env, plan_id)?;
+    plan.subscriber_count = plan.subscriber_count.saturating_sub(1);
+    storage::write_plan(env, &plan);
+    Ok(())
+}
