@@ -58,3 +58,29 @@ pub(crate) fn require_live(env: &Env) -> Result<Config, Error> {
     storage::bump_instance(env);
     Ok(config)
 }
+
+pub(crate) fn set_fee(env: &Env, admin: &Address, fee_bps: u32) -> Result<(), Error> {
+    let mut config = require_admin(env, admin)?;
+    check_rates(fee_bps, config.keeper_reward_bps)?;
+    config.fee_bps = fee_bps;
+    storage::write_config(env, &config);
+    events::config_updated(env, &config);
+    Ok(())
+}
+
+pub(crate) fn set_keeper_reward(env: &Env, admin: &Address, reward_bps: u32) -> Result<(), Error> {
+    let mut config = require_admin(env, admin)?;
+    check_rates(config.fee_bps, reward_bps)?;
+    config.keeper_reward_bps = reward_bps;
+    storage::write_config(env, &config);
+    events::config_updated(env, &config);
+    Ok(())
+}
+
+pub(crate) fn set_treasury(env: &Env, admin: &Address, treasury: Address) -> Result<(), Error> {
+    let mut config = require_admin(env, admin)?;
+    config.treasury = treasury;
+    storage::write_config(env, &config);
+    events::config_updated(env, &config);
+    Ok(())
+}

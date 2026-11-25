@@ -41,4 +41,19 @@ impl SubscriptionContract {
     pub fn get_config(env: Env) -> Result<Config, Error> {
         storage::read_config(&env)
     }
+
+    /// Changes the protocol fee. Admin only, capped at 1000 bps.
+    pub fn set_fee(env: Env, admin: Address, fee_bps: u32) -> Result<(), Error> {
+        governance::set_fee(&env, &admin, fee_bps)
+    }
+
+    /// Changes the reward paid to keepers. Admin only, capped at 500 bps.
+    pub fn set_keeper_reward(env: Env, admin: Address, reward_bps: u32) -> Result<(), Error> {
+        governance::set_keeper_reward(&env, &admin, reward_bps)
+    }
+
+    /// Changes where protocol fees are sent. Admin only.
+    pub fn set_treasury(env: Env, admin: Address, treasury: Address) -> Result<(), Error> {
+        governance::set_treasury(&env, &admin, treasury)
+    }
 }
