@@ -6,5 +6,6 @@ mod merchants;
 mod pausing;
 mod plan_changes;
 mod plans;
+mod refunds;
 mod setup;
 mod subscriptions;
