@@ -8,6 +8,7 @@
 // interface stays flat and easy to call from any client.
 #![allow(clippy::too_many_arguments)]
 
+mod billing;
 mod events;
 mod governance;
 mod merchants;
@@ -178,5 +179,24 @@ impl SubscriptionContract {
     /// Number of subscriptions created so far. Ids run from 1 to this number.
     pub fn subscription_count(env: Env) -> u64 {
         storage::subscription_count(&env)
+    }
+}
+
+// Billing.
+#[contractimpl]
+impl SubscriptionContract {
+    /// Charges a subscription that is due and returns the amount taken.
+    ///
+    /// Anyone can call this. The caller is paid the keeper reward out of the charge.
+    /// If the subscriber's allowance or balance is too low the charge is recorded as
+    /// failed, the subscription goes past due, and the call returns zero instead of
+    /// failing, so the new status is saved.
+    pub fn charge(env: Env, keeper: Address, sub_id: u64) -> Result<i128, Error> {
+        billing::charge(&env, &keeper, sub_id)
+    }
+
+    /// True when `charge` would attempt a payment right now.
+    pub fn is_due(env: Env, sub_id: u64) -> bool {
+        billing::is_due(&env, sub_id)
     }
 }
