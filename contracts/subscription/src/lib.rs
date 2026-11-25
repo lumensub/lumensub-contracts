@@ -5,6 +5,7 @@
 //! once a payment is due; the caller (a "keeper") earns a small reward for doing so.
 #![no_std]
 
+mod events;
 mod payments;
 mod pricing;
 mod storage;
