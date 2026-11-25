@@ -1,0 +1,19 @@
+[package]
+name = "lumensub-subscription"
+description = "Recurring payments on Soroban: plans, subscriptions and keeper-triggered charges"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+lumensub-types = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

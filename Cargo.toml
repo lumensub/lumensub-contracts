@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "contracts/lumensub-types",
-    "contracts/splitter",
     "contracts/subscription",
 ]
 
