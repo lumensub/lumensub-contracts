@@ -95,3 +95,22 @@ fn admin_can_move_the_treasury() {
     s.client.set_treasury(&s.admin, &new_treasury);
     assert_eq!(s.client.get_config().treasury, new_treasury);
 }
+
+#[test]
+fn admin_can_pause_and_unpause_the_protocol() {
+    let s = Setup::bare();
+    s.client.pause_protocol(&s.admin);
+    assert!(s.client.get_config().paused);
+    s.client.unpause_protocol(&s.admin);
+    assert!(!s.client.get_config().paused);
+}
+
+#[test]
+fn only_the_admin_can_pause() {
+    let s = Setup::bare();
+    let stranger = Address::generate(&s.env);
+    assert_eq!(
+        s.client.try_pause_protocol(&stranger),
+        Err(Ok(Error::Unauthorized))
+    );
+}

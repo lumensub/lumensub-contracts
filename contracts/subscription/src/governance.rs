@@ -84,3 +84,11 @@ pub(crate) fn set_treasury(env: &Env, admin: &Address, treasury: Address) -> Res
     events::config_updated(env, &config);
     Ok(())
 }
+
+pub(crate) fn set_paused(env: &Env, admin: &Address, paused: bool) -> Result<(), Error> {
+    let mut config = require_admin(env, admin)?;
+    config.paused = paused;
+    storage::write_config(env, &config);
+    events::config_updated(env, &config);
+    Ok(())
+}

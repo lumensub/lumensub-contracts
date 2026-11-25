@@ -56,4 +56,15 @@ impl SubscriptionContract {
     pub fn set_treasury(env: Env, admin: Address, treasury: Address) -> Result<(), Error> {
         governance::set_treasury(&env, &admin, treasury)
     }
+
+    /// Stops new plans, new subscriptions, charges and resumes. Cancelling and
+    /// pausing a subscription still work, so subscribers can always get out.
+    pub fn pause_protocol(env: Env, admin: Address) -> Result<(), Error> {
+        governance::set_paused(&env, &admin, true)
+    }
+
+    /// Lifts a protocol pause.
+    pub fn unpause_protocol(env: Env, admin: Address) -> Result<(), Error> {
+        governance::set_paused(&env, &admin, false)
+    }
 }
