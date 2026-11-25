@@ -5,6 +5,7 @@
 //! once a payment is due; the caller (a "keeper") earns a small reward for doing so.
 #![no_std]
 
+mod pricing;
 mod storage;
 
 pub use lumensub_types::*;
