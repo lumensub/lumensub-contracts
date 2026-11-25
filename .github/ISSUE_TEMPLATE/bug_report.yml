@@ -1,0 +1,38 @@
+name: Bug report
+description: Something in the contracts behaves differently from the docs
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. If the bug could let someone move funds
+        they should not be able to, please do not open a public issue. Follow SECURITY.md instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: A failing test is the best possible report. Otherwise, the exact calls and arguments.
+      render: rust
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or release
+      placeholder: e.g. 3f2c1a9 or v0.1.0
+  - type: dropdown
+    id: contract
+    attributes:
+      label: Contract
+      options:
+        - subscription
+        - splitter
+        - lumensub-types
+        - tooling / CI

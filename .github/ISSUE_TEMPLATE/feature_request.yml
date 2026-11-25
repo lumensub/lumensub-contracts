@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a change to the contracts or their interface
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can't you do today, and who runs into it (merchants, subscribers, keepers, integrators)?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you'd like
+      description: The behaviour you have in mind. Sketch the function signatures or events if it helps.
+    validations:
+      required: true
+  - type: textarea
+    id: interface
+    attributes:
+      label: Interface impact
+      description: Would this change an existing function, event or error code? Backend and app code depend on them.
