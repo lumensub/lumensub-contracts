@@ -145,3 +145,33 @@ On sign-up without a trial, `sub_new` is published first and `charged` (with
 | 20 | `SamePlan` | `change_plan` to the plan already in use. |
 
 Codes never change and new ones are only appended.
+
+## Splitter contract
+
+A split pays incoming revenue out to several wallets by fixed shares. It is separate
+from the subscription contract and entirely optional.
+
+The split's owner approves the splitter to spend the token. `distribute` then pulls an
+amount from the owner and pays each recipient their share. A merchant who wants revenue
+shared sets the owner wallet as their LumenSub payout and has a keeper call
+`distribute` after each `charged` event.
+
+| Function | Who | What it does |
+|---|---|---|
+| `create_split(owner, recipients) -> u64` | owner | `recipients` is a list of `(Address, bps)` pairs adding up to 10,000. At most ten, no duplicates, no zero shares. |
+| `update_split(owner, split_id, recipients)` | owner | Replaces the list, with the same checks. |
+| `distribute(split_id, token, amount)` | anyone | Pulls `amount` from the owner and pays out. Shares round down and the last recipient gets the remainder. |
+| `get_split(split_id) -> Split` | anyone | |
+
+Events: `("split_new", split_id)` with the owner, `("split_upd", split_id)` with the
+owner, and `("split_out", split_id)` with `(token, amount)`.
+
+| Code | Name | Meaning |
+|---|---|---|
+| 1 | `SplitNotFound` | No split with this id. |
+| 2 | `InvalidShares` | A zero share, or shares not adding up to 10,000. |
+| 3 | `TooManyRecipients` | More than ten recipients. |
+| 4 | `InvalidAmount` | Zero or negative amount. |
+| 5 | `DuplicateRecipient` | An address appears twice. |
+| 6 | `Unauthorized` | Not the split's owner. |
+| 7 | `NoRecipients` | Empty recipient list. |
