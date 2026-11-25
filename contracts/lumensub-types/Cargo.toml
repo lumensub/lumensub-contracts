@@ -1,0 +1,15 @@
+[package]
+name = "lumensub-types"
+description = "Shared types and error codes for the LumenSub contracts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
