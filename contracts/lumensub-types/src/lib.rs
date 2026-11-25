@@ -9,5 +9,5 @@ mod records;
 mod status;
 
 pub use error::Error;
-pub use records::{Config, Merchant, Plan};
+pub use records::{Config, Merchant, Plan, Subscription};
 pub use status::SubscriptionStatus;

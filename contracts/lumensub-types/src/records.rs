@@ -1,5 +1,7 @@
 use soroban_sdk::{contracttype, Address};
 
+use crate::SubscriptionStatus;
+
 /// Protocol-wide settings, stored once in instance storage.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -51,4 +53,34 @@ pub struct Plan {
     pub created_at: u64,
     /// Subscriptions currently attached to this plan, including paused and past-due ones.
     pub subscriber_count: u32,
+}
+
+/// One subscriber's agreement to pay for one plan.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Subscription {
+    pub id: u64,
+    pub plan_id: u64,
+    pub subscriber: Address,
+    /// Copied from the plan so a subscription can be checked without loading the plan.
+    pub merchant: Address,
+    /// Copied from the plan. A subscription never changes token.
+    pub token: Address,
+    pub status: SubscriptionStatus,
+    pub created_at: u64,
+    /// Earliest timestamp at which a keeper may charge this subscription.
+    pub next_charge_at: u64,
+    /// Number of successful charges so far.
+    pub cycles_charged: u32,
+    pub last_charged_at: u64,
+    /// When the subscription first went past due. Zero when not past due.
+    pub past_due_since: u64,
+    /// When the subscription was paused. Zero when not paused.
+    pub paused_at: u64,
+    /// Credit from a plan change, taken off the next charge.
+    pub credit: i128,
+    /// Everything the subscriber has paid, before fees.
+    pub total_paid: i128,
+    /// Everything the merchant has refunded.
+    pub total_refunded: i128,
 }
