@@ -14,6 +14,7 @@ mod governance;
 mod merchants;
 mod payments;
 mod plans;
+mod refunds;
 mod pricing;
 mod storage;
 mod subscriptions;
@@ -227,5 +228,16 @@ impl SubscriptionContract {
     /// True when `charge` would attempt a payment right now.
     pub fn is_due(env: Env, sub_id: u64) -> bool {
         billing::is_due(&env, sub_id)
+    }
+}
+
+// Refunds.
+#[contractimpl]
+impl SubscriptionContract {
+    /// Sends `amount` of the subscription's token from the merchant back to the
+    /// subscriber. Merchant only, and capped at what the subscriber has paid so far
+    /// minus earlier refunds. Does not change the subscription's status.
+    pub fn refund(env: Env, merchant: Address, sub_id: u64, amount: i128) -> Result<(), Error> {
+        refunds::refund(&env, &merchant, sub_id, amount)
     }
 }
