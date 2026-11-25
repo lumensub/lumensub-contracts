@@ -4,11 +4,15 @@
 //! token on their behalf and subscribe to a plan. From then on anyone can call `charge`
 //! once a payment is due; the caller (a "keeper") earns a small reward for doing so.
 #![no_std]
+// `create_plan` takes the full set of plan terms as separate arguments so the contract
+// interface stays flat and easy to call from any client.
+#![allow(clippy::too_many_arguments)]
 
 mod events;
 mod governance;
 mod merchants;
 mod payments;
+mod plans;
 mod pricing;
 mod storage;
 
@@ -17,6 +21,7 @@ mod test;
 
 pub use lumensub_types::*;
 
+use plans::PlanTerms;
 use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
 
 #[contract]
@@ -98,5 +103,56 @@ impl SubscriptionContract {
     /// Returns a merchant's record.
     pub fn get_merchant(env: Env, merchant: Address) -> Result<Merchant, Error> {
         storage::read_merchant(&env, &merchant)
+    }
+}
+
+// Plans.
+#[contractimpl]
+impl SubscriptionContract {
+    /// Publishes a plan and returns its id. The merchant must be registered.
+    ///
+    /// `amount` is charged every `period_secs` (at least one hour). `trial_secs` delays
+    /// the first charge. `max_cycles` limits the number of charges, with zero meaning no
+    /// limit. `grace_secs` is how long a failed charge is retried before the
+    /// subscription lapses.
+    pub fn create_plan(
+        env: Env,
+        merchant: Address,
+        token: Address,
+        amount: i128,
+        period_secs: u64,
+        trial_secs: u64,
+        max_cycles: u32,
+        grace_secs: u64,
+    ) -> Result<u64, Error> {
+        let terms = PlanTerms {
+            token,
+            amount,
+            period_secs,
+            trial_secs,
+            max_cycles,
+            grace_secs,
+        };
+        plans::create(&env, &merchant, terms)
+    }
+
+    /// Opens or closes a plan to new subscribers. Merchant only.
+    pub fn set_plan_active(
+        env: Env,
+        merchant: Address,
+        plan_id: u64,
+        active: bool,
+    ) -> Result<(), Error> {
+        plans::set_active(&env, &merchant, plan_id, active)
+    }
+
+    /// Returns a plan.
+    pub fn get_plan(env: Env, plan_id: u64) -> Result<Plan, Error> {
+        storage::read_plan(&env, plan_id)
+    }
+
+    /// Number of plans created so far. Plan ids run from 1 to this number.
+    pub fn plan_count(env: Env) -> u64 {
+        storage::plan_count(&env)
     }
 }
