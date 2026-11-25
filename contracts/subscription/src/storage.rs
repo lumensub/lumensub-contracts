@@ -56,7 +56,7 @@ pub(crate) fn remove_pending_admin(env: &Env) {
 }
 
 fn next_id(env: &Env, key: &DataKey) -> u64 {
-    let id: u64 = env.storage().instance().get(key).unwrap_or(0) + 1;
+    let id = env.storage().instance().get::<_, u64>(key).unwrap_or(0) + 1;
     env.storage().instance().set(key, &id);
     id
 }
