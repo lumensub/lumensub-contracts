@@ -1,0 +1,97 @@
+# Contract reference
+
+Everything the contracts expose. Function names, argument order, event topics and error
+codes are a stable interface; the backend and the app are built against this page.
+
+Amounts are `i128` in the token's smallest unit (stroops for a 7-decimal Stellar asset).
+Times are ledger timestamps in seconds. Basis points (bps) are hundredths of a percent.
+
+## Subscription contract
+
+### Setup and administration
+
+| Function | Who | What it does |
+|---|---|---|
+| `initialize(admin, treasury, fee_bps, keeper_reward_bps)` | admin | One-time setup. `fee_bps` at most 1000, `keeper_reward_bps` at most 500. |
+| `get_config() -> Config` | anyone | Admin, treasury, rates and whether the protocol is paused. |
+| `set_fee(admin, fee_bps)` | admin | Changes the protocol fee. |
+| `set_keeper_reward(admin, reward_bps)` | admin | Changes the keeper reward. |
+| `set_treasury(admin, treasury)` | admin | Changes where protocol fees go. |
+| `pause_protocol(admin)` | admin | Blocks new merchants, plans, subscriptions, charges, resumes and plan changes. |
+| `unpause_protocol(admin)` | admin | Lifts the pause. |
+| `propose_admin(admin, new_admin)` | admin | Starts an admin handover. |
+| `accept_admin(new_admin)` | proposed admin | Completes the handover. |
+| `upgrade(admin, wasm_hash)` | admin | Replaces the contract code. Storage is kept. |
+
+### Merchants
+
+| Function | Who | What it does |
+|---|---|---|
+| `register_merchant(merchant, payout)` | merchant | Registers, or updates the payout address if already registered. |
+| `get_merchant(merchant) -> Merchant` | anyone | Payout address, plan count and registration time. |
+
+### Plans
+
+| Function | Who | What it does |
+|---|---|---|
+| `create_plan(merchant, token, amount, period_secs, trial_secs, max_cycles, grace_secs) -> u64` | merchant | Publishes a plan and returns its id. |
+| `set_plan_active(merchant, plan_id, active)` | merchant | Opens or closes the plan to new subscribers. Existing subscribers keep being billed. |
+| `get_plan(plan_id) -> Plan` | anyone | |
+| `plan_count() -> u64` | anyone | Plan ids run from 1 to this number. |
+
+Limits on `create_plan`: `amount` above zero, `period_secs` at least 3,600 (one hour),
+`trial_secs` at most one year, `grace_secs` at most thirty days. `max_cycles = 0` means
+no limit.
+
+### Subscriptions
+
+| Function | Who | What it does |
+|---|---|---|
+| `subscribe(subscriber, plan_id) -> u64` | subscriber | Subscribes and returns the id. Charges the first period unless the plan has a trial. |
+| `get_subscription(sub_id) -> Subscription` | anyone | |
+| `subscription_count() -> u64` | anyone | Subscription ids run from 1 to this number. |
+| `pause(subscriber, sub_id)` | subscriber | Stops billing. Works during a protocol pause. |
+| `resume(subscriber, sub_id)` | subscriber | Restarts billing and adds the paused time to `next_charge_at`. |
+| `cancel(caller, sub_id)` | subscriber or merchant | Ends the subscription. Works during a protocol pause. |
+| `change_plan(subscriber, sub_id, new_plan_id)` | subscriber | Moves to another plan from the same merchant in the same token, with prorated credit. |
+
+Before `subscribe`, the subscriber calls `approve(subscriber, <subscription contract>,
+amount, expiration_ledger)` on the token. The allowance has to cover every charge you
+expect before `expiration_ledger`, so approve for months, not one period.
+
+### Billing
+
+| Function | Who | What it does |
+|---|---|---|
+| `charge(keeper, sub_id) -> i128` | anyone | Charges a due subscription and returns the amount taken, or zero if the charge failed. |
+| `is_due(sub_id) -> bool` | anyone | True when `charge` would attempt a payment now. |
+
+A successful charge pulls the amount due (plan price minus any credit) from the
+subscriber and sends:
+
+- `amount * fee_bps / 10000` to the treasury,
+- `amount * keeper_reward_bps / 10000` to the keeper,
+- the rest to the merchant's payout address.
+
+Fees round down, so rounding dust goes to the merchant.
+
+### Refunds
+
+| Function | Who | What it does |
+|---|---|---|
+| `refund(merchant, sub_id, amount)` | merchant | Sends `amount` from the merchant's own wallet back to the subscriber. Capped at total paid minus earlier refunds. |
+
+### Stored records
+
+`Config`: `admin`, `treasury`, `fee_bps`, `keeper_reward_bps`, `paused`.
+
+`Merchant`: `payout`, `plan_count`, `registered_at`.
+
+`Plan`: `id`, `merchant`, `token`, `amount`, `period_secs`, `trial_secs`, `max_cycles`,
+`grace_secs`, `active`, `created_at`, `subscriber_count`.
+
+`Subscription`: `id`, `plan_id`, `subscriber`, `merchant`, `token`, `status`,
+`created_at`, `next_charge_at`, `cycles_charged`, `last_charged_at`, `past_due_since`,
+`paused_at`, `credit`, `total_paid`, `total_refunded`.
+
+`status` is a `u32`; the values are listed in [lifecycle.md](lifecycle.md).
