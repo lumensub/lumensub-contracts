@@ -16,7 +16,7 @@ mod test;
 
 pub use types::{Split, SplitError};
 
-use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, Vec};
+use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Vec};
 
 /// Most recipients a single split can have.
 pub const MAX_RECIPIENTS: u32 = 10;
@@ -51,5 +51,44 @@ impl SplitterContract {
     /// Returns a split.
     pub fn get_split(env: Env, split_id: u64) -> Result<Split, SplitError> {
         storage::read_split(&env, split_id)
+    }
+
+    /// Pulls `amount` of `token` from the split owner and pays each recipient their share.
+    ///
+    /// Anyone may call this; the owner controls how much can move through the allowance
+    /// they give this contract. Shares round down and the last recipient receives the
+    /// remainder, so the full amount is always paid out.
+    pub fn distribute(
+        env: Env,
+        split_id: u64,
+        token: Address,
+        amount: i128,
+    ) -> Result<(), SplitError> {
+        if amount <= 0 {
+            return Err(SplitError::InvalidAmount);
+        }
+        let split = storage::read_split(&env, split_id)?;
+        let client = token::Client::new(&env, &token);
+        let spender = env.current_contract_address();
+
+        let owner = &split.owner;
+        let count = split.recipients.len();
+        let mut paid: i128 = 0;
+        for i in 0..count {
+            let (recipient, bps) = split.recipients.get_unchecked(i);
+            let share = if i + 1 == count {
+                amount - paid
+            } else {
+                amount * i128::from(bps) / i128::from(TOTAL_BPS)
+            };
+            if share > 0 {
+                client.transfer_from(&spender, owner, &recipient, &share);
+            }
+            paid += share;
+        }
+
+        let topics = (symbol_short!("split_out"), split_id);
+        env.events().publish(topics, (token, amount));
+        Ok(())
     }
 }

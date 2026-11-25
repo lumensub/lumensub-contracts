@@ -104,3 +104,53 @@ fn unknown_splits_are_not_found() {
         Err(Ok(SplitError::SplitNotFound))
     );
 }
+
+/// Mints `amount` to the owner and approves the splitter to spend it.
+fn fund_owner(s: &Setup, amount: i128) -> TokenClient<'static> {
+    let issuer = Address::generate(&s.env);
+    let asset = s.env.register_stellar_asset_contract_v2(issuer);
+    let issuer_client = StellarAssetClient::new(&s.env, &asset.address());
+    issuer_client.mint(&s.owner, &amount);
+    let token = TokenClient::new(&s.env, &asset.address());
+    let exp = s.env.ledger().sequence() + 1_000;
+    token.approve(&s.owner, &s.client.address, &amount, &exp);
+    token
+}
+
+#[test]
+fn distributing_pays_each_recipient_their_share() {
+    let s = setup();
+    let id = s.client.create_split(&s.owner, &shares(&s, 7_000, 3_000));
+    let token = fund_owner(&s, 1_000);
+
+    s.client.distribute(&id, &token.address, &1_000);
+    assert_eq!(token.balance(&s.alice), 700);
+    assert_eq!(token.balance(&s.bob), 300);
+    assert_eq!(token.balance(&s.owner), 0);
+}
+
+#[test]
+fn rounding_dust_goes_to_the_last_recipient() {
+    let s = setup();
+    let carol = Address::generate(&s.env);
+    let mut three = shares(&s, 3_333, 3_333);
+    three.push_back((carol.clone(), 3_334));
+    let id = s.client.create_split(&s.owner, &three);
+    let token = fund_owner(&s, 100);
+
+    s.client.distribute(&id, &token.address, &100);
+    assert_eq!(token.balance(&s.alice), 33);
+    assert_eq!(token.balance(&s.bob), 33);
+    assert_eq!(token.balance(&carol), 34);
+}
+
+#[test]
+fn distributing_nothing_is_rejected() {
+    let s = setup();
+    let id = s.client.create_split(&s.owner, &shares(&s, 5_000, 5_000));
+    let token = fund_owner(&s, 100);
+    assert_eq!(
+        s.client.try_distribute(&id, &token.address, &0),
+        Err(Ok(SplitError::InvalidAmount))
+    );
+}
