@@ -6,13 +6,39 @@
 #![no_std]
 
 mod events;
+mod governance;
 mod payments;
 mod pricing;
 mod storage;
 
+#[cfg(test)]
+mod test;
+
 pub use lumensub_types::*;
 
-use soroban_sdk::contract;
+use soroban_sdk::{contract, contractimpl, Address, Env};
 
 #[contract]
 pub struct SubscriptionContract;
+
+// Setup and administration.
+#[contractimpl]
+impl SubscriptionContract {
+    /// Sets the admin, the treasury and the fee rates. Can only be called once.
+    ///
+    /// `fee_bps` is capped at 1000 (10%) and `keeper_reward_bps` at 500 (5%).
+    pub fn initialize(
+        env: Env,
+        admin: Address,
+        treasury: Address,
+        fee_bps: u32,
+        keeper_reward_bps: u32,
+    ) -> Result<(), Error> {
+        governance::initialize(&env, admin, treasury, fee_bps, keeper_reward_bps)
+    }
+
+    /// Returns the protocol settings.
+    pub fn get_config(env: Env) -> Result<Config, Error> {
+        storage::read_config(&env)
+    }
+}
