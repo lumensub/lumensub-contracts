@@ -4,6 +4,7 @@ mod failed_charges;
 mod governance;
 mod merchants;
 mod pausing;
+mod plan_changes;
 mod plans;
 mod setup;
 mod subscriptions;
