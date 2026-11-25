@@ -69,8 +69,11 @@ pub(crate) fn subscribe(env: &Env, subscriber: &Address, plan_id: u64) -> Result
         });
     }
 
-    plan.subscriber_count += 1;
-    storage::write_plan(env, &plan);
+    // A one-cycle plan is finished the moment it is paid, so it never holds a seat.
+    if sub.status != SubscriptionStatus::Completed {
+        plan.subscriber_count += 1;
+        storage::write_plan(env, &plan);
+    }
     storage::write_subscription(env, &sub);
     events::subscribed(env, id, plan_id, subscriber);
     if let Some(event) = first_charge {

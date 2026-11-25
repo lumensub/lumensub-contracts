@@ -58,7 +58,14 @@ pub(crate) fn charge(env: &Env, keeper: &Address, sub_id: u64) -> Result<i128, E
     sub.last_charged_at = now;
     sub.total_paid += due;
     sub.past_due_since = 0;
-    sub.status = SubscriptionStatus::Active;
+    sub.status = if plan.max_cycles > 0 && sub.cycles_charged >= plan.max_cycles {
+        SubscriptionStatus::Completed
+    } else {
+        SubscriptionStatus::Active
+    };
+    if sub.status == SubscriptionStatus::Completed {
+        plans::release_seat(env, sub.plan_id)?;
+    }
     storage::write_subscription(env, &sub);
 
     let event = ChargedEvent {

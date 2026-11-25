@@ -89,3 +89,30 @@ fn charging_is_blocked_while_the_protocol_is_paused() {
         Err(Ok(Error::ProtocolPaused))
     );
 }
+
+#[test]
+fn a_limited_plan_completes_after_its_last_cycle() {
+    let s = Setup::with_merchant();
+    let plan = s.create_plan(0, 3, DAY);
+    let id = s.subscribe(plan);
+    s.advance(MONTH);
+    s.client.charge(&s.keeper, &id);
+    assert_eq!(
+        s.client.get_subscription(&id).status,
+        SubscriptionStatus::Active
+    );
+
+    s.advance(MONTH);
+    s.client.charge(&s.keeper, &id);
+    let sub = s.client.get_subscription(&id);
+    assert_eq!(sub.status, SubscriptionStatus::Completed);
+    assert_eq!(sub.cycles_charged, 3);
+    assert_eq!(s.client.get_plan(&plan).subscriber_count, 0);
+
+    s.advance(MONTH);
+    assert!(!s.client.is_due(&id));
+    assert_eq!(
+        s.client.try_charge(&s.keeper, &id),
+        Err(Ok(Error::InvalidStatus))
+    );
+}
