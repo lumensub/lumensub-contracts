@@ -180,6 +180,17 @@ impl SubscriptionContract {
     pub fn subscription_count(env: Env) -> u64 {
         storage::subscription_count(&env)
     }
+
+    /// Pauses billing. Subscriber only. Works even while the protocol is paused.
+    pub fn pause(env: Env, subscriber: Address, sub_id: u64) -> Result<(), Error> {
+        subscriptions::pause(&env, &subscriber, sub_id)
+    }
+
+    /// Resumes a paused subscription. The time spent paused is added to the next
+    /// billing date. Subscriber only.
+    pub fn resume(env: Env, subscriber: Address, sub_id: u64) -> Result<(), Error> {
+        subscriptions::resume(&env, &subscriber, sub_id)
+    }
 }
 
 // Billing.

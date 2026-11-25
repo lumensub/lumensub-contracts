@@ -81,3 +81,52 @@ pub(crate) fn subscribe(env: &Env, subscriber: &Address, plan_id: u64) -> Result
     }
     Ok(id)
 }
+
+fn check_owner(sub: &Subscription, subscriber: &Address) -> Result<(), Error> {
+    if sub.subscriber != *subscriber {
+        return Err(Error::Unauthorized);
+    }
+    Ok(())
+}
+
+/// Stops billing until the subscriber resumes. Allowed during a protocol pause, so a
+/// subscriber can always stop payments.
+pub(crate) fn pause(env: &Env, subscriber: &Address, sub_id: u64) -> Result<(), Error> {
+    subscriber.require_auth();
+    let mut sub = storage::read_subscription(env, sub_id)?;
+    check_owner(&sub, subscriber)?;
+    if !matches!(
+        sub.status,
+        SubscriptionStatus::Active | SubscriptionStatus::Trialing
+    ) {
+        return Err(Error::InvalidStatus);
+    }
+    sub.status = SubscriptionStatus::Paused;
+    sub.paused_at = env.ledger().timestamp();
+    storage::write_subscription(env, &sub);
+    events::paused(env, sub_id);
+    Ok(())
+}
+
+pub(crate) fn resume(env: &Env, subscriber: &Address, sub_id: u64) -> Result<(), Error> {
+    subscriber.require_auth();
+    governance::require_live(env)?;
+    let mut sub = storage::read_subscription(env, sub_id)?;
+    check_owner(&sub, subscriber)?;
+    if sub.status != SubscriptionStatus::Paused {
+        return Err(Error::InvalidStatus);
+    }
+    // Time spent paused is added back, so the subscriber keeps the days they paid for.
+    let now = env.ledger().timestamp();
+    let paused_for = now.saturating_sub(sub.paused_at);
+    sub.next_charge_at = sub.next_charge_at.saturating_add(paused_for);
+    sub.paused_at = 0;
+    sub.status = if sub.cycles_charged == 0 {
+        SubscriptionStatus::Trialing
+    } else {
+        SubscriptionStatus::Active
+    };
+    storage::write_subscription(env, &sub);
+    events::resumed(env, sub_id);
+    Ok(())
+}
