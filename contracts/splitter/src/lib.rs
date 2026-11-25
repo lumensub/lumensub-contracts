@@ -48,6 +48,27 @@ impl SplitterContract {
         Ok(id)
     }
 
+    /// Replaces the recipient list. Owner only. The new list is checked the same way as
+    /// on creation.
+    pub fn update_split(
+        env: Env,
+        owner: Address,
+        split_id: u64,
+        recipients: Vec<(Address, u32)>,
+    ) -> Result<(), SplitError> {
+        owner.require_auth();
+        let mut split = storage::read_split(&env, split_id)?;
+        if split.owner != owner {
+            return Err(SplitError::Unauthorized);
+        }
+        validation::check_recipients(&recipients)?;
+        split.recipients = recipients;
+        storage::write_split(&env, &split);
+        let topics = (symbol_short!("split_upd"), split_id);
+        env.events().publish(topics, owner);
+        Ok(())
+    }
+
     /// Returns a split.
     pub fn get_split(env: Env, split_id: u64) -> Result<Split, SplitError> {
         storage::read_split(&env, split_id)
