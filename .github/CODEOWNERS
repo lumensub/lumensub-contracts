@@ -1,0 +1,6 @@
+# Every change is reviewed by a maintainer.
+*                   @devgodfreytem
+
+# Interface changes affect the backend and the app, so they get a closer look.
+/contracts/lumensub-types/   @devgodfreytem
+/docs/contract-reference.md  @devgodfreytem
