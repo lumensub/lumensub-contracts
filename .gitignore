@@ -1,0 +1,13 @@
+/target
+**/target
+*.wasm
+!fixtures/**/*.wasm
+.soroban/
+.stellar/
+test_snapshots/
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
