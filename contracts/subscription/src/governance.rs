@@ -2,7 +2,7 @@
 //! upgrades and handing the admin role to someone else.
 
 use lumensub_types::{Config, Error};
-use soroban_sdk::{Address, Env};
+use soroban_sdk::{Address, BytesN, Env};
 
 use crate::events;
 use crate::pricing::{MAX_FEE_BPS, MAX_KEEPER_REWARD_BPS};
@@ -113,5 +113,11 @@ pub(crate) fn accept_admin(env: &Env, new_admin: &Address) -> Result<(), Error> 
     storage::write_config(env, &config);
     storage::remove_pending_admin(env);
     events::config_updated(env, &config);
+    Ok(())
+}
+
+pub(crate) fn upgrade(env: &Env, admin: &Address, wasm_hash: BytesN<32>) -> Result<(), Error> {
+    require_admin(env, admin)?;
+    env.deployer().update_current_contract_wasm(wasm_hash);
     Ok(())
 }

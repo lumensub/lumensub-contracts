@@ -1,5 +1,5 @@
 use soroban_sdk::testutils::Address as _;
-use soroban_sdk::Address;
+use soroban_sdk::{Address, BytesN};
 
 use super::setup::{uninitialized, Setup, FEE_BPS, KEEPER_BPS};
 use crate::{Config, Error};
@@ -143,5 +143,16 @@ fn accepting_with_no_handover_in_progress_fails() {
     assert_eq!(
         s.client.try_accept_admin(&s.admin),
         Err(Ok(Error::NoPendingAdmin))
+    );
+}
+
+#[test]
+fn only_the_admin_can_upgrade() {
+    let s = Setup::bare();
+    let stranger = Address::generate(&s.env);
+    let hash = BytesN::from_array(&s.env, &[7; 32]);
+    assert_eq!(
+        s.client.try_upgrade(&stranger, &hash),
+        Err(Ok(Error::Unauthorized))
     );
 }

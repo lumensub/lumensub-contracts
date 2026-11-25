@@ -16,7 +16,7 @@ mod test;
 
 pub use lumensub_types::*;
 
-use soroban_sdk::{contract, contractimpl, Address, Env};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env};
 
 #[contract]
 pub struct SubscriptionContract;
@@ -76,5 +76,11 @@ impl SubscriptionContract {
     /// Completes an admin handover started with `propose_admin`.
     pub fn accept_admin(env: Env, new_admin: Address) -> Result<(), Error> {
         governance::accept_admin(&env, &new_admin)
+    }
+
+    /// Replaces the contract code with a Wasm blob already uploaded to the network.
+    /// Admin only. Storage is kept, so new code must read the existing layout.
+    pub fn upgrade(env: Env, admin: Address, wasm_hash: BytesN<32>) -> Result<(), Error> {
+        governance::upgrade(&env, &admin, wasm_hash)
     }
 }
