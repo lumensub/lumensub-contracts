@@ -5,7 +5,7 @@ use soroban_sdk::{Address, Env};
 
 use crate::payments::{self, Shortfall};
 use crate::pricing::split_payment;
-use crate::{events, governance, storage};
+use crate::{events, governance, plans, storage};
 
 pub(crate) fn subscribe(env: &Env, subscriber: &Address, plan_id: u64) -> Result<u64, Error> {
     subscriber.require_auth();
@@ -128,5 +128,26 @@ pub(crate) fn resume(env: &Env, subscriber: &Address, sub_id: u64) -> Result<(),
     };
     storage::write_subscription(env, &sub);
     events::resumed(env, sub_id);
+    Ok(())
+}
+
+/// Ends a subscription for good. Either the subscriber or the merchant may cancel, and
+/// cancelling works during a protocol pause. No refund is made here; merchants refund
+/// separately with `refund` if they want to.
+pub(crate) fn cancel(env: &Env, caller: &Address, sub_id: u64) -> Result<(), Error> {
+    caller.require_auth();
+    let mut sub = storage::read_subscription(env, sub_id)?;
+    if sub.subscriber != *caller && sub.merchant != *caller {
+        return Err(Error::Unauthorized);
+    }
+    if sub.status.is_final() {
+        return Err(Error::InvalidStatus);
+    }
+    sub.status = SubscriptionStatus::Cancelled;
+    sub.paused_at = 0;
+    sub.past_due_since = 0;
+    plans::release_seat(env, sub.plan_id)?;
+    storage::write_subscription(env, &sub);
+    events::cancelled(env, sub_id, caller);
     Ok(())
 }

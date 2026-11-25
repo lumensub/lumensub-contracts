@@ -191,6 +191,12 @@ impl SubscriptionContract {
     pub fn resume(env: Env, subscriber: Address, sub_id: u64) -> Result<(), Error> {
         subscriptions::resume(&env, &subscriber, sub_id)
     }
+
+    /// Cancels a subscription for good. Either the subscriber or the merchant may call
+    /// this, and it works even while the protocol is paused.
+    pub fn cancel(env: Env, caller: Address, sub_id: u64) -> Result<(), Error> {
+        subscriptions::cancel(&env, &caller, sub_id)
+    }
 }
 
 // Billing.
