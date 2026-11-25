@@ -4,7 +4,7 @@ use lumensub_types::{ChargedEvent, Error, Subscription, SubscriptionStatus};
 use soroban_sdk::{Address, Env};
 
 use crate::payments::{self, Shortfall};
-use crate::pricing::split_payment;
+use crate::pricing::{prorated_credit, split_payment};
 use crate::{events, governance, plans, storage};
 
 pub(crate) fn subscribe(env: &Env, subscriber: &Address, plan_id: u64) -> Result<u64, Error> {
@@ -149,5 +149,59 @@ pub(crate) fn cancel(env: &Env, caller: &Address, sub_id: u64) -> Result<(), Err
     plans::release_seat(env, sub.plan_id)?;
     storage::write_subscription(env, &sub);
     events::cancelled(env, sub_id, caller);
+    Ok(())
+}
+
+/// Moves a subscription to another plan from the same merchant, priced in the same token.
+///
+/// For a paid-up subscription the unused part of the current period becomes credit and
+/// the new plan is due straight away, so the next charge is the new price minus that
+/// credit. During a trial only the plan changes. Cycles already charged carry over.
+pub(crate) fn change_plan(
+    env: &Env,
+    subscriber: &Address,
+    sub_id: u64,
+    new_plan_id: u64,
+) -> Result<(), Error> {
+    subscriber.require_auth();
+    governance::require_live(env)?;
+    let mut sub = storage::read_subscription(env, sub_id)?;
+    check_owner(&sub, subscriber)?;
+    if !matches!(
+        sub.status,
+        SubscriptionStatus::Active | SubscriptionStatus::Trialing
+    ) {
+        return Err(Error::InvalidStatus);
+    }
+    if new_plan_id == sub.plan_id {
+        return Err(Error::SamePlan);
+    }
+    let old_plan = storage::read_plan(env, sub.plan_id)?;
+    let mut new_plan = storage::read_plan(env, new_plan_id)?;
+    if !new_plan.active {
+        return Err(Error::PlanInactive);
+    }
+    if new_plan.merchant != sub.merchant {
+        return Err(Error::MerchantMismatch);
+    }
+    if new_plan.token != sub.token {
+        return Err(Error::TokenMismatch);
+    }
+
+    if sub.status == SubscriptionStatus::Active {
+        let now = env.ledger().timestamp();
+        let remaining = sub.next_charge_at.saturating_sub(now);
+        sub.credit += prorated_credit(old_plan.amount, old_plan.period_secs, remaining);
+        sub.next_charge_at = now;
+    }
+
+    plans::release_seat(env, old_plan.id)?;
+    new_plan.subscriber_count += 1;
+    storage::write_plan(env, &new_plan);
+
+    let from_plan = sub.plan_id;
+    sub.plan_id = new_plan_id;
+    storage::write_subscription(env, &sub);
+    events::plan_changed(env, sub_id, from_plan, new_plan_id);
     Ok(())
 }

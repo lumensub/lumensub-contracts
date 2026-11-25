@@ -197,6 +197,18 @@ impl SubscriptionContract {
     pub fn cancel(env: Env, caller: Address, sub_id: u64) -> Result<(), Error> {
         subscriptions::cancel(&env, &caller, sub_id)
     }
+
+    /// Switches to another plan from the same merchant in the same token. The unused
+    /// part of the current period is credited against the first charge on the new plan,
+    /// which is due immediately. Subscriber only.
+    pub fn change_plan(
+        env: Env,
+        subscriber: Address,
+        sub_id: u64,
+        new_plan_id: u64,
+    ) -> Result<(), Error> {
+        subscriptions::change_plan(&env, &subscriber, sub_id, new_plan_id)
+    }
 }
 
 // Billing.
