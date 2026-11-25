@@ -7,6 +7,7 @@
 
 mod events;
 mod governance;
+mod merchants;
 mod payments;
 mod pricing;
 mod storage;
@@ -82,5 +83,20 @@ impl SubscriptionContract {
     /// Admin only. Storage is kept, so new code must read the existing layout.
     pub fn upgrade(env: Env, admin: Address, wasm_hash: BytesN<32>) -> Result<(), Error> {
         governance::upgrade(&env, &admin, wasm_hash)
+    }
+}
+
+// Merchants.
+#[contractimpl]
+impl SubscriptionContract {
+    /// Registers `merchant` and sets where its revenue is paid. Calling it again
+    /// updates the payout address and keeps everything else.
+    pub fn register_merchant(env: Env, merchant: Address, payout: Address) -> Result<(), Error> {
+        merchants::register(&env, &merchant, &payout)
+    }
+
+    /// Returns a merchant's record.
+    pub fn get_merchant(env: Env, merchant: Address) -> Result<Merchant, Error> {
+        storage::read_merchant(&env, &merchant)
     }
 }

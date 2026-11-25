@@ -65,6 +65,13 @@ impl Setup<'_> {
             token_admin,
         }
     }
+
+    /// Deploys, initializes and registers the merchant.
+    pub fn with_merchant() -> Self {
+        let s = Self::bare();
+        s.client.register_merchant(&s.merchant, &s.payout);
+        s
+    }
 }
 
 /// A deployed contract that has not been initialized.
