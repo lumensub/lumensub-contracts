@@ -1,5 +1,6 @@
 mod billing;
 mod cancelling;
+mod events;
 mod failed_charges;
 mod governance;
 mod merchants;
