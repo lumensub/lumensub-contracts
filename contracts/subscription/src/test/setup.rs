@@ -85,6 +85,28 @@ impl Setup<'_> {
             &grace_secs,
         )
     }
+
+    /// Lets the contract pull up to `amount` from the default subscriber.
+    pub fn approve(&self, amount: i128) {
+        let expiration = self.env.ledger().sequence() + 10_000;
+        self.token
+            .approve(&self.subscriber, &self.client.address, &amount, &expiration);
+    }
+
+    /// Approves two years of charges and subscribes the default subscriber.
+    pub fn subscribe(&self, plan_id: u64) -> u64 {
+        self.approve(PRICE * 24);
+        self.client.subscribe(&self.subscriber, &plan_id)
+    }
+
+    /// Moves the ledger clock forward.
+    pub fn advance(&self, secs: u64) {
+        self.env.ledger().with_mut(|li| li.timestamp += secs);
+    }
+
+    pub fn balance(&self, account: &Address) -> i128 {
+        self.token.balance(account)
+    }
 }
 
 /// A deployed contract that has not been initialized.
