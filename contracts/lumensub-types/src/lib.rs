@@ -5,7 +5,9 @@
 #![no_std]
 
 mod error;
+mod records;
 mod status;
 
 pub use error::Error;
+pub use records::{Config, Merchant};
 pub use status::SubscriptionStatus;
