@@ -7,6 +7,14 @@ updates:
     groups:
       soroban:
         patterns: ["soroban-*"]
+    ignore:
+      # A new soroban-sdk major changes host functions and test utilities, and the
+      # contracts have to be re-checked against it. We move majors by hand.
+      - dependency-name: "soroban-*"
+        update-types: ["version-update:semver-major"]
+      # Pinned to 2.x in Cargo.lock: 3.x breaks soroban-env-host 22's test utilities.
+      - dependency-name: "ed25519-dalek"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
