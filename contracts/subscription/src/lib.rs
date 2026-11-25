@@ -15,6 +15,7 @@ mod payments;
 mod plans;
 mod pricing;
 mod storage;
+mod subscriptions;
 
 #[cfg(test)]
 mod test;
@@ -154,5 +155,28 @@ impl SubscriptionContract {
     /// Number of plans created so far. Plan ids run from 1 to this number.
     pub fn plan_count(env: Env) -> u64 {
         storage::plan_count(&env)
+    }
+}
+
+// Subscriptions.
+#[contractimpl]
+impl SubscriptionContract {
+    /// Subscribes to a plan and returns the new subscription id.
+    ///
+    /// Before calling this, the subscriber approves this contract as a spender of the
+    /// plan's token, for at least one period and ideally for many. Without a trial the
+    /// first period is charged straight away.
+    pub fn subscribe(env: Env, subscriber: Address, plan_id: u64) -> Result<u64, Error> {
+        subscriptions::subscribe(&env, &subscriber, plan_id)
+    }
+
+    /// Returns a subscription.
+    pub fn get_subscription(env: Env, sub_id: u64) -> Result<Subscription, Error> {
+        storage::read_subscription(&env, sub_id)
+    }
+
+    /// Number of subscriptions created so far. Ids run from 1 to this number.
+    pub fn subscription_count(env: Env) -> u64 {
+        storage::subscription_count(&env)
     }
 }

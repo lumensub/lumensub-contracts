@@ -52,14 +52,15 @@ pub(crate) fn check_can_pay(
 }
 
 /// Pulls one charge from `from` and sends each share where it belongs. Zero shares are
-/// skipped so a protocol with no fee makes no empty transfers.
+/// skipped so a protocol with no fee makes no empty transfers. `keeper` is `None` when
+/// the subscriber pays directly, as on sign-up.
 pub(crate) fn collect(
     env: &Env,
     token: &Address,
     from: &Address,
     payout: &Address,
     treasury: &Address,
-    keeper: &Address,
+    keeper: Option<&Address>,
     split: &PaymentSplit,
 ) {
     let client = token::Client::new(env, token);
@@ -70,7 +71,9 @@ pub(crate) fn collect(
     if split.fee > 0 {
         client.transfer_from(&spender, from, treasury, &split.fee);
     }
-    if split.keeper > 0 {
-        client.transfer_from(&spender, from, keeper, &split.keeper);
+    if let Some(keeper) = keeper {
+        if split.keeper > 0 {
+            client.transfer_from(&spender, from, keeper, &split.keeper);
+        }
     }
 }
