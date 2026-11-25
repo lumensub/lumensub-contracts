@@ -72,6 +72,19 @@ impl Setup<'_> {
         s.client.register_merchant(&s.merchant, &s.payout);
         s
     }
+
+    /// Creates a monthly plan at `PRICE` with the given trial, cycle limit and grace.
+    pub fn create_plan(&self, trial_secs: u64, max_cycles: u32, grace_secs: u64) -> u64 {
+        self.client.create_plan(
+            &self.merchant,
+            &self.token.address,
+            &PRICE,
+            &MONTH,
+            &trial_secs,
+            &max_cycles,
+            &grace_secs,
+        )
+    }
 }
 
 /// A deployed contract that has not been initialized.
