@@ -5,9 +5,14 @@
 #![no_std]
 
 mod error;
+mod events;
 mod records;
 mod status;
 
 pub use error::Error;
+pub use events::{
+    CancelledEvent, ChargeFailedEvent, ChargedEvent, PlanChangedEvent, PlanCreatedEvent,
+    RefundedEvent, SubscribedEvent,
+};
 pub use records::{Config, Merchant, Plan, Subscription};
 pub use status::SubscriptionStatus;
